@@ -1,0 +1,5 @@
+train: /home/dina/test_yolov3/images/train
+val: /home/dina/test_yolov3/images/val
+nc: 3
+names: ['Neutral', 'Pain', 'Sad']
+
