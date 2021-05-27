@@ -14,9 +14,9 @@ $(document).ready(function() {
     //connect to the socket server.
     var ws = new WebSocket("ws://"+window.location.hostname+":1234");
     ws.onmessage = function(event) {
-        // console.log("Get Message: " + event.data);
-        sound_value = JSON.parse(event.data).data_sound;
-        gsr_value = JSON.parse(event.data).data_gsr;
+        console.log("Get Data: " + event.data);
+        sound_value = parseInt(JSON.parse(event.data).data_sound);
+        gsr_value = parseInt(JSON.parse(event.data).data_gsr);
     };
 
     drawChartSound();
@@ -47,8 +47,8 @@ function drawChartSound() {
                     type: 'realtime',
                     realtime: {
                         duration: 6000,
-                        refresh: 10,
-                        delay: 10,
+                        refresh: 0.1,
+                        delay: 0.1,
                         onRefresh: onRefreshSound
                     }
                 }],
@@ -109,8 +109,8 @@ function drawChartGSR() {
                     type: 'realtime',
                     realtime: {
                         duration: 6000,
-                        refresh: 10,
-                        delay: 10,
+                        refresh: 0.1,
+                        delay: 0.1,
                         onRefresh: onRefreshGSR
                     }
                 }],

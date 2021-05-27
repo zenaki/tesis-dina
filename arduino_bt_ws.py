@@ -1,6 +1,8 @@
 import sys, os, datetime, time, random, json, socket
 import asyncio, websockets, threading, bluetooth
 import subprocess as sp
+import sounddevice as sd
+import numpy as np
 
 connections = []
 volume_norm = 0
@@ -38,6 +40,11 @@ def connectBluetooth():
         # sock.shutdown(socket.SHUT_RDWR)
         # sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
 
+def print_sound(indata, outdata, frames, time, status):
+    global volume_norm
+    volume_norm = np.linalg.norm(indata)*10
+    # print("|" * int(volume_norm))
+
 async def process(websocket, path):
     print("someone's connecting")
     connections.append(websocket)
@@ -58,36 +65,45 @@ async def send_data():
     global  bd_addr, sock
 
     msg = ""
-    while True:
-        await asyncio.sleep(0.01)
-        try:
-            data = sock.recv(1)
-            data = data.decode("utf-8")
-        except:
-            data = ""
-            stdoutdata = sp.getoutput("hcitool con")
-            if bd_addr in stdoutdata.split():
-                print("Bluetooth device is still connected")
-            else:
-                connectBluetooth()
-
-        if msg.find('\r\n') > 0:
-            msg = msg.split('\r')[0]
-            # print("msg = "+msg)
+    data_gsr = "0"
+    data_sound = "0"
+    with sd.Stream(callback=print_sound):
+        while True:
+            await asyncio.sleep(0.01)
             try:
-                data_gsr = msg.split('#')[0]
-                data_sound = msg.split('#')[1]
+                data = sock.recv(1)
+                data = data.decode("utf-8")
             except:
-                data_gsr = "0"
-                data_sound = "0"
+                data = ""
+                stdoutdata = sp.getoutput("hcitool con")
+                if bd_addr in stdoutdata.split():
+                    print("Bluetooth device is still connected")
+                else:
+                    connectBluetooth()
+
+            # print("msg = "+msg)
+            if msg.find('\r\n') > 0:
+                msg = msg.split('\r')[0]
+                # print("msg = "+msg)
+                # data_gsr = "0"
+                # data_sound = "0"
+                try:
+                    data_gsr = msg.split('#')[0]
+                    # data_sound = msg.split('#')[1]
+                except:
+                    data_gsr = "0"
+                    # data_sound = "0"
+                msg = ""
+            else:
+                msg = msg+data
+
+            data_sound = str(volume_norm)
+            print('{"data_sound": "'+data_sound+'", "data_gsr": "'+data_gsr+'"}')
             for connection in connections:
                 try:
-                    await connection.send('{"data_sound": '+data_sound+', "data_gsr": '+data_gsr+'}')
+                    await connection.send('{"data_sound": "'+data_sound+'", "data_gsr": "'+data_gsr+'"}')
                 except:
                     connections.remove(connection)
-            msg = ""
-        else:
-            msg = msg+data
 while 1:
     stdoutdata = sp.getoutput("hcitool con")
     if bd_addr in stdoutdata.split():
